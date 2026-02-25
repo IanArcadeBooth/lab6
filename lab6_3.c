@@ -159,5 +159,9 @@ int main() {
     usleep(SLEEP_TIME); // this controls the time
   }
 
+  gpio_write(LED0, LED_OFF); // This turns the LEDS off when exiting the program
+  gpio_write(LED1, LED_OFF);
+  gpio_write(LED2, LED_OFF);
+
   return 0;
 }
