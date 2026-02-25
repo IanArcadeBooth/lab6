@@ -1,43 +1,51 @@
-// lab6_step5_wiringpi.c
-// Step 5: WiringPi version (3 LEDs + 3 buttons)
-// Uses BCM GPIO numbering via wiringPiSetupGpio().
+/*
+ * File: lab6_5.c
+ * Author: Ian Booth
+ * Date: 2026/02/25
+ * Description: Controls a 3-LED marquee on a Raspberry Pi using WiringPi.
+ * Three buttons control direction and program exit.
+ */
 
 #include <stdio.h>
 #include <unistd.h>
 #include <wiringPi.h>
 
-// ===== Your LED wiring (PHYSICAL -> BCM) =====
-// Pin 11 -> GPIO17
-// Pin 12 -> GPIO18
-// Pin 13 -> GPIO27
-#define LED0 17
-#define LED1 18
-#define LED2 27
+#define LED0 17 // physical pin11
+#define LED1 18 // physcial pine12
+#define LED2 27 // physical pin13
 
-// ===== Buttons (BCM GPIO numbers) =====
-// Set these to whatever GPIOs your buttons are wired to.
-#define B0 22  // right->left
-#define B1 23  // left->right
-#define B2 24  // stop/exit
+#define B0 22 //(phyysical pin15) right
+#define B1 23 //(physical pin16) left
+#define B2 24 //(physical pin 18) stop/exit
 
-// If your LEDs are wired: 3.3V -> resistor -> LED -> GPIO (GPIO sinks current)
-// then LEDs are ACTIVE-LOW.
+#define WAIT_TIME 180
 #define ACTIVE_LOW 0
 
-#if ACTIVE_LOW
-#define LED_ON  LOW
+#if ACTIVE_LOW // using this if to figure out why it seemed like my LEDs were on
+#define LED_ON LOW // two at a time
 #define LED_OFF HIGH
 #else
-#define LED_ON  HIGH
+#define LED_ON HIGH
 #define LED_OFF LOW
 #endif
 
+/*
+ * Description: Turns all LEDs off.
+ * @return: none
+ * side effects: Sets all LED GPIO pins to the off state.
+ */
 static void all_off(void) {
   digitalWrite(LED0, LED_OFF);
   digitalWrite(LED1, LED_OFF);
   digitalWrite(LED2, LED_OFF);
 }
 
+/*
+ * Description: turns on one lED and turns off the others.
+ * @param pos: led to turn on (0 = LED0, 1 = LED1, 2 = LED2).
+ * @return: none
+ * side effects: Turns on/off LEDS?? (not sure if this is a side effect
+ */
 static void show_pos(int pos) {
   all_off();
   if (pos == 0)
@@ -48,43 +56,55 @@ static void show_pos(int pos) {
     digitalWrite(LED2, LED_ON);
 }
 
+/*
+ * Description: start of program. starts WiringPi, configures the GPIO
+ * pins for LEDs and buttons, and runs a 3 led cycle until the stop
+ * button is pressed.
+ * @return: 0 on normal exit, non-zero on error.
+ * side effects: Controls GPIO output pins and reads GPIO input pins.
+ */
 int main(void) {
-  // BCM numbering (matches GPIO17/18/27 etc.)
-  if (wiringPiSetupGpio() != 0) {
-    printf("wiringPiSetupGpio failed\n");
+  if (wiringPiSetupGpio() !=
+      0) { // this sets the defined LED pins as the braodcom (BCM) number
+    printf("wiringPiSetupGpio failed\n"); // of the pins
     return 1;
   }
 
-  // LEDs outputs
-  pinMode(LED0, OUTPUT);
+  pinMode(LED0, OUTPUT); // sets pins as output
   pinMode(LED1, OUTPUT);
   pinMode(LED2, OUTPUT);
   all_off();
 
-  // Buttons inputs + pulldown (pressed = HIGH if wired to 3.3V)
-  pinMode(B0, INPUT);
+  pinMode(B0, INPUT); // makes buttons inputs and pulldowns
   pinMode(B1, INPUT);
   pinMode(B2, INPUT);
   pullUpDnControl(B0, PUD_DOWN);
   pullUpDnControl(B1, PUD_DOWN);
   pullUpDnControl(B2, PUD_DOWN);
 
-  int dir = 1;   // 1 = left->right, 0 = right->left
-  int pos = 0;
+  int dir = 1; // 1 is right, 0 is left
+  int pos = 0; // holds the currents position of LED that is on
 
   while (1) {
-    // read buttons (tap to set direction)
-    if (digitalRead(B0) == HIGH) { dir = 0; delay(120); } // debounce
-    if (digitalRead(B1) == HIGH) { dir = 1; delay(120); } // debounce
-    if (digitalRead(B2) == HIGH) break;
+    if (digitalRead(B0) == HIGH) {
+      dir = 0;
+      delay(120);
+    } // these read the buttons and debounce
+    if (digitalRead(B1) == HIGH) {
+      dir = 1;
+      delay(120);
+    } // with small delay
+    if (digitalRead(B2) == HIGH)
+      break; // no delay for deabounce beacuse the program is now done
 
     show_pos(pos);
 
-    // move continuously like a marquee
-    if (dir) pos = (pos + 1) % 3;
-    else     pos = (pos + 2) % 3; // -1 mod 3
+    if (dir)
+      pos = (pos + 1) % 3; // moves "forward" through cycle
+    else
+      pos = (pos + 2) % 3; // moves "backwards" through cycle
 
-    delay(180); // speed (ms) - change to taste
+    delay(WAIT_TIME); // speed of the position change/loop
   }
 
   all_off();
